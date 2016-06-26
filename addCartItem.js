@@ -7,62 +7,67 @@ router1.use(bodyParser.json());
 router1.use(bodyParser.urlencoded({extended: true}));
 
 router1.post('/cart',function (req,res) {
-    fs.readFile('fixtures.json','utf-8',function (err,data) {
-        if(err){
-            res.status(404).send('');
-            return;
-        }
-        data = JSON.parse(data);
-        addNewCart(res,req,data);
-    });
+   fs.readFile('./fixtures.json','utf8',function (err,data) {
+       if(err){
+            res.status(400).send('');
+           return;
+       }
+     var items = JSON.parse(data);
+    getBodyItem(items,res,req);
+   });
 });
 
-function addNewCart(res,req,data) {
+function getBodyItem(items,res,req) {
     var item = req.body;
-    var max = findMaxId();
-    var newitem = {
-        id:max + 1,
-        barcode:item.barcode,
-        name:item.name,
-        unit:item.unit,
-        price:item.price
-    };
-    data.push(newitem);
-    writeFile(data,newitem,res);
-    writeNewId(newitem,res);
-
+    if(typeof item.name != "string"
+        || typeof item.barcode != "string"
+        || typeof item.unit != "string"
+        || typeof item.price != "number"){
+        res.status(401).send('');
+        return;
+     }
+    insertItem(item,items,res);
 }
 
-  function findMaxId() {
-     fs.readFile('maxId.json','utf-8',function(err,data) {
-         if(err){
-             res.status(404).send('');
-             return;
-         }
-         var max = JSON.parse(data);
-         console.log(max.maxId);
-         return max.maxId;
-     });
- }
-
-function writeFile(data,newitem,res) {
-    fs.writeFile('fixtures.json',JSON.stringify(data),function (err) {
+function insertItem(item,items,res) {
+    fs.readFile('./maxId.json','utf8',function (err,data) {
         if(err){
             res.status(404).send('');
             return;
         }
-        res.status(200).json(newitem);
+        var id = JSON.parse(data);
+        var maxId = ++(id.maxId);
+        var cart = {
+            id:maxId,
+            barcode:item.barcode,
+            name:item.name,
+            unit:item.unit,
+            price:item.price
+        };
+        items.push(cart);
+        console.log(items);
+        updateMaxId(maxId,res);
+        updateItems(items,cart,res);
     });
 }
 
-function writeNewId(newitem,res) {
-    var maxid = {
-      "maxId":newitem.id
-    };
-    fs.writeFile('maxId.json',JSON.stringify(maxid),function (err) {
+function updateMaxId(maxId,res) {
+    fs.writeFile('./maxId.json',JSON.stringify({maxId:maxId}),function (err) {
         if(err){
             res.status(404).send('');
+            return;
         }
     });
 }
+
+function updateItems(items,cart,res) {
+    fs.writeFile('./fixtures.json',JSON.stringify(items),function (err) {
+        if(err){
+            res.status(404).send('');
+            return;
+        }
+        res.status(200).json(cart);
+    });
+}
+
 module.exports = router1;
