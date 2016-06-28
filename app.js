@@ -26,10 +26,6 @@ fs.open('fixtures.json','w+',function (err) {
 });
 
 var server = app.listen(4000, function () {
-
-  var host = server.address().address;
-  var port = server.address().port;
-  console.log("express server port is %s",port)
-
+  console.log(server.address().port);
 });
 
